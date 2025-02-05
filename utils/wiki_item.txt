@@ -1,0 +1,3 @@
+Morpha's Bubble Bag	Morpha's Bubble Bag	12	+20 inventory slots
++4.7% movement speed
++12% mining damage
