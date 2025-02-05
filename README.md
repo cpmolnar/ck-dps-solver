@@ -21,8 +21,8 @@ note of this setting for non-lategame users.
 ## Items
 Edit `items.py` to add or remove items to search.  
 There are a lot of item examples in there, you need to copy  
-the template. Obviously, new set bonuses need to be programmed  
-by you.
+the template. Obviously, new set bonuses need to be  
+programmed by you.
 
 # Run
 Type `python dps_solver.py` in your terminal to run it
