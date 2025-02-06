@@ -21,7 +21,8 @@ WEAPONS = {
         consider_for='Melee',
         attributes={
             '+_mining_damage': 1000
-        }
+        },
+        has_durability=False
     ),
 }
 

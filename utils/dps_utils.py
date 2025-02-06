@@ -33,15 +33,17 @@ def calculate_adjusted_weapon_damage(character: Character, attributes, damage_ty
 def calculate_weakness_detection_crit(character: Character, attributes):
     attacks_per_second = character.items['Weapon'].attacks_per_second * (1 + attributes['%_range_attack_speed'] + attributes['%_melee_and_range_attack_speed'])
     critical_hit_chance = attributes['%_critical_hit_chance']
-    activation_chance = (1-(character.perks['Range']['Weakness detection'] * 0.02)) ** attacks_per_second # Chance of activating the perk each second
-    active_likelihood = 1 - ((1 - activation_chance) ** 3) # Approximate likelihood of having activated the perk in the past 3 seconds
+    expected_rolls_per_outcome = 1 / (character.perks['Range']['Weakness detection'] * 0.02)
+    expected_seconds_until_outcome = expected_rolls_per_outcome / attacks_per_second
+    active_likelihood = 3 / (3 + expected_seconds_until_outcome) # This is activation length / the expected length of the block of time in and out of activation
     adjusted_critical_hit_chance = active_likelihood + (critical_hit_chance * (1 - active_likelihood))
     return adjusted_critical_hit_chance
 
 def calculate_fast_and_furious_attack_speed(character: Character, attributes):
     attacks_per_second = character.items['Weapon'].attacks_per_second * (1 + attributes['%_melee_attack_speed'] + attributes['%_melee_and_range_attack_speed'])
-    activation_chance = (1-(character.perks['Melee']['Fast and furious'] * 0.02)) ** attacks_per_second # Chance of activating the perk each second
-    active_likelihood = 1 - ((1 - activation_chance) ** 3) # Approximate likelihood of having activated the perk in the past 3 seconds
+    expected_rolls_per_outcome = 1 / (character.perks['Melee']['Fast and furious'] * 0.02)
+    expected_seconds_until_outcome = expected_rolls_per_outcome / attacks_per_second
+    active_likelihood = 3 / (3 + expected_seconds_until_outcome)
     adjusted_melee_attack_speed = (attributes['%_melee_attack_speed'] * 1.5 * active_likelihood) + (attributes['%_melee_attack_speed'] * (1 - active_likelihood))
     return adjusted_melee_attack_speed
 

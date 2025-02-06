@@ -74,7 +74,7 @@ if __name__=='__main__':
     damage_type = 'Melee'
 
     print('Composing loadouts...')
-    keys_list = get_keys_for_damage_type([HELMS, BREAST_ARMORS, PANTS_ARMORS, NECKLACES, RINGS, RINGS, OFFHANDS], damage_type)
+    keys_list = get_keys_for_damage_type([HELMS, BREAST_ARMORS, PANTS_ARMORS, NECKLACES, RINGS, RINGS, OFFHANDS, PETS], damage_type)
     loadouts = list(itertools.product(*keys_list))
     # loadouts = [row.tolist() for _, row in pd.read_csv('outputs/melee_dps.csv').iterrows()]
     results = {
@@ -83,7 +83,7 @@ if __name__=='__main__':
     }
 
     for loadout in loadouts:
-        helm, breast_armor, pants_armor, necklace, ring1, ring2, offhand = loadout
+        helm, breast_armor, pants_armor, necklace, ring1, ring2, offhand, pet = loadout
         # _, _, helm, breast_armor, pants_armor, necklace, ring1, ring2, offhand, *_= loadout
         [
             results[item_category].append(item_name) for item_category, item_name in \
@@ -92,17 +92,16 @@ if __name__=='__main__':
             ('Breast armor', breast_armor), 
             ('Pants armor', pants_armor), 
             ('Necklace', necklace), 
-            ('Ring1', ring1 if ring1 > ring2 else ring2), 
+            ('Ring1', ring1 if ring1 > ring2 else ring2), # Permutation invariance once duplicates are dropped
             ('Ring2', ring2 if ring1 > ring2 else ring1), 
             ('Offhand', offhand),
             ('Lantern', 'None' if damage_type=='Range' else 'Orb Lantern'), 
             ('Bag', 'None' if damage_type=='Range' else 'Morpha\'s Bubble Bag'), 
-            ('Pet', 'Pheromoth' if damage_type=='Range' else 'Owlux'), 
+            ('Pet', pet if damage_type=='Range' else 'Owlux'), 
             ('DPS', 'None')]
         ]
     results = pd.DataFrame.from_dict(results)
     results = results.drop_duplicates(subset=['Helm', 'Breast armor', 'Pants armor', 'Necklace', 'Ring1', 'Ring2', 'Offhand'])
-
 
     def calculate(row):
         character.reset_items()

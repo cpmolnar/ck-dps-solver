@@ -2,8 +2,9 @@ from . import Item
 import math
 
 class Weapon(Item):
-    def __init__(self, name, min_damage, max_damage, attacks_per_second, damage_type, consider_for, set = None, attributes: dict = {}, reinforced = False):
-        super().__init__(name, 'Weapon', consider_for, set, attributes, reinforced)
+    def __init__(self, name, min_damage, max_damage, attacks_per_second, damage_type, consider_for, set = None, attributes: dict = {}, reinforced = False, 
+                 has_durability = True):
+        super().__init__(name, 'Weapon', consider_for, set, attributes, reinforced, has_durability)
         self.min_damage = min_damage
         self.max_damage = max_damage
         self.attacks_per_second = attacks_per_second

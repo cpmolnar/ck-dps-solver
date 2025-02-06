@@ -24,7 +24,7 @@ class Item():
         for attribute_name, value in attributes.items():
             self.attributes[attribute_name] += value
             
-        self.has_durability = (has_durability | (item_category in ['Weapon', 'Helm', 'Breast armor', 'Pants armor']))
+        self.has_durability = (has_durability | (item_category in ['Helm', 'Breast armor', 'Pants armor']))
         self.reinforced = False
         if has_durability: self.reinforced = reinforced
         if reinforced and has_durability: self.reinforce()
