@@ -501,7 +501,7 @@ BAGS = {
         item_category='Bag',
         consider_for='Melee',
         attributes={
-            '%_mining_damage': 0.12,
+            '%_mining_damage': 0.19,
         }
     ),
 }

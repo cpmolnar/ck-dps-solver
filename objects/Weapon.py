@@ -11,7 +11,7 @@ class Weapon(Item):
         self.damage_type = damage_type
 
     def reinforce(self):
-        if not self.reinforced:
+        if not self.reinforced and self.has_durability:
             self.reinforced = True
             self.attributes = {k: round(v*1.15, 0 if k in ['+_fishing', '+_mining_damage', '+_thorns_damage'] else 3) for k, v in self.attributes.items()}
             self.min_damage = math.ceil(self.min_damage*1.15)

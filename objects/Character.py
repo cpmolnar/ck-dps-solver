@@ -1,7 +1,23 @@
 from . import Item, Weapon
 
+ACTIVE_EFFECTS_DICT = {
+    '%_damage': {},
+    '%_physical_melee_damage': {},
+    '%_physical_range_damage': {},
+    '%_mining_damage': {},
+    '%_melee_attack_speed': {},
+    '%_range_attack_speed': {},
+    '%_melee_and_range_attack_speed': {},
+    '%_damage_against_bosses': {},
+    '%_critical_hit_damage': {},
+    '%_critical_hit_chance': {},
+    '%_triple_hit_chance': {},
+    '+_fishing': {},
+    '+_mining_damage': {},
+    '+_thorns_damage': {},
+}
 class Character():
-    def __init__(self, skill_levels: dict, perks: dict, items: dict = None, settings: dict = None, food_attributes = None):
+    def __init__(self, skill_levels: dict, perks: dict, items: dict = None, food_effects = None, potion_effects = None, settings: dict = None):
         self.skill_levels = skill_levels
         
         perk_to_label = {
@@ -22,9 +38,12 @@ class Character():
         for skill, tier_choices in perks.items():
             self.perks[skill] = {perk_to_label[skill][i]: v for i, v in enumerate(tier_choices)}
     
-        self.reset_items()
+        self.items = {
+            'Weapon': None, 'Helm': None, 'Breast armor': None, 'Pants armor': None, 'Necklace': None,
+            'Ring1': None, 'Ring2': None, 'Offhand': None, 'Lantern': None, 'Bag': None, 'Pet': None,
+        }
 
-        self.settings = {
+        self.settings = settings if settings is not None else {
             'Well fed': True,
             'Max health': True,
             'Low health': False,
@@ -34,14 +53,15 @@ class Character():
             'Melee stacks': True,
             'Consumables active': True,
             'Ate fish-derived food': True,
-            'Pyrdra defeated': True
+            'Pyrdra soul': True
         }
 
         if items is not None:
-            for item_category, item in items:
-                items[item_category] = item
+            for item_category, item in items.items():
+                self.items[item_category] = item
 
-        self.food_attributes = food_attributes
+        self.food_effects = food_effects
+        self.potion_effects = potion_effects
 
     def equip(self, item):
         if item.item_category=='Ring':
@@ -49,91 +69,86 @@ class Character():
         else: 
             self.items[item.item_category] = item
 
-    def reset_items(self): 
-        self.items = {
-            'Weapon': None, 'Helm': None, 'Breast armor': None, 'Pants armor': None, 'Necklace': None,
-            'Ring1': None, 'Ring2': None, 'Offhand': None, 'Lantern': None, 'Bag': None, 'Pet': None,
-        }
+    def unequip_items(self, except_categories=[]):
+        for item_category in [ic for ic in self.items.keys() if ic not in except_categories]:
+            self.items[item_category] = None
 
     def reinforce_items(self): [item.reinforce() for item in self.items.values() if item is not None]
 
     def printable_loadout(self): return ', '.join([item_name for item_name in self.items.keys() if item_name is not None])
 
-    def get_item_stats(self):
-        item_stats = {
-            'attributes': {},
-            'set': {},
-        }
+    def get_consumables_active_effects(self):
+        active_effects = ACTIVE_EFFECTS_DICT.copy()
+        if self.settings['Consumables active']:
+            if self.food_effects is not None:
+                [self.update_effect(active_effects[k], *item) for k in self.food_effects.keys() for item in self.food_effects[k].items()]
+            if self.potion_effects is not None:
+                [self.update_effect(active_effects[k], *item) for k in self.potion_effects.keys() for item in self.potion_effects[k].items()]
 
+        return active_effects
+
+    def get_item_active_effects(self, return_set=True):
+        active_effects = ACTIVE_EFFECTS_DICT.copy()
+        set_keywords = {}
         for item in self.items.values():
             if item is not None:
-                item_stats['set'][item.name] = item.set
+                set_keywords.update({item.name: item.set})
                 for attribute_name, value in item.attributes.items():
-                    if attribute_name not in item_stats['attributes']: item_stats['attributes'][attribute_name] = 0.
-                    item_stats['attributes'][attribute_name] += value
-
-        item_stats['attributes']['%_damage'] += (0.25 if sum([item_set=='core_commander_set' for item_set in item_stats['set'].values()])>=2 else 0)
-        item_stats['attributes']['%_damage'] += ((self.perks['Gardening']['Potent poison'] * 0.05) if (sum([item_set=='druidra\'s_ring' for item_set in item_stats['set'].values()])>=1) else 0)
-        item_stats['attributes']['%_critical_hit_chance'] += (0.25 if (sum([item_set=='ivy\'s_set' for item_set in item_stats['set'].values()])>=2) & (sum([item_set=='druidra\'s_ring' for item_set in item_stats['set'].values()])>=1) else 0)
+                    self.update_effect(active_effects[attribute_name], f'(Item Effect) {item.name}', value)
+        self.update_effect(active_effects['%_damage'], '(Item Effect) Druidra\'s Ring', self.perks['Gardening']['Potent poison'] * 0.05 if sum([item_set=='druidra\'s_ring' for item_set in set_keywords.values()])>=1 else 0)
+        self.update_effect(active_effects['%_damage'], '(Set Effect) Core Commander Set', 0.25 if sum([item_set=='core_commander_set' for item_set in set_keywords.values()])>=2 else 0)
+        self.update_effect(active_effects['%_critical_hit_chance'], '(Set Effect) Ivy\'s Set', 0.25 if (sum([item_set=='ivy\'s_set' for item_set in set_keywords.values()])>=2) & (sum([item_set=='druidra\'s_ring' for item_set in set_keywords.values()])>=1) else 0)
         
-        return item_stats
+        if return_set: return active_effects, set_keywords
+        return active_effects
     
-    def get_character_attributes(self):
-        character_attributes = {
-            '%_damage': 0.,
-            '%_physical_melee_damage': 0.,
-            '%_physical_range_damage': 0.,
-            '%_mining_damage': 0.,
-            '%_melee_attack_speed': 0.,
-            '%_range_attack_speed': 0.,
-            '%_melee_and_range_attack_speed': 0.,
-            '%_damage_against_bosses': 0.,
-            '%_critical_hit_damage': 0.5,
-            '%_critical_hit_chance': 0.,
-            '%_triple_hit_chance': 0.,
-            '+_fishing': 0.,
-            '+_mining_damage': 0.,
-            '+_thorns_damage': 0.,
-        }
+    def get_character_active_effects(self):
+        active_effects = ACTIVE_EFFECTS_DICT.copy()
 
-        character_attributes['%_damage'] += self.perks['Cooking']['The smell of food'] * 0.04
-        character_attributes['%_damage'] += self.settings['Pyrdra defeated'] * 0.1
-        if self.settings['Max health']:     character_attributes['%_damage'] += self.perks['Vitality']['Strong and healthy'] * 0.02
-        if self.settings['Low health']:     character_attributes['%_damage'] += self.perks['Vitality']['Desperate fighter'] * 0.04
-        if self.settings['Well fed']:       character_attributes['%_damage'] += (1 + (self.perks['Cooking']['Healthy diet']) * 0.2) * 0.05
-        if self.settings['Running stacks']: character_attributes['%_damage'] += self.perks['Running']['Keeping tempo'] * 0.03
-
-        character_attributes['%_critical_hit_chance'] += self.perks['Magic']['True sight'] * 0.01
-        character_attributes['%_critical_hit_damage'] += self.perks['Gardening']['Thorny weapons'] * 0.05
-        character_attributes['%_critical_hit_damage'] += self.perks['Range']['Amplified precision'] * 0.08
-
-        character_attributes['%_damage_against_bosses'] += self.perks['Melee']['Strength of the Ancients'] * 0.05
-        if self.settings['Ate fish-derived food']: character_attributes['%_damage_against_bosses'] += self.perks['Fishing']['Power of Omega-3!'] * 0.03
-
-        character_attributes['+_thorns_damage'] += self.perks['Gardening']['Thorny skin'] * 10
+        self.update_effect(active_effects['%_damage'], '(Cooking Perk) The smell of food', self.perks['Cooking']['The smell of food'] * 0.04)
+        self.update_effect(active_effects['%_damage'], '(Setting) Pyrdra soul', self.settings['Pyrdra soul'] * 0.1)
+        self.update_effect(active_effects['%_damage'], '(Vitality Perk) Strong and healthy', self.perks['Vitality']['Strong and healthy'] * 0.02 if self.settings['Max health'] else 0)
+        self.update_effect(active_effects['%_damage'], '(Vitality Perk) Desperate fighter', self.perks['Vitality']['Desperate fighter'] * 0.04 if self.settings['Low health'] else 0)
+        self.update_effect(active_effects['%_damage'], '(Cooking Perk) Healthy diet', (1 + (self.perks['Cooking']['Healthy diet']) * 0.2) * 0.05 if self.settings['Well fed'] else 0)
+        self.update_effect(active_effects['%_damage'], '(Running Perk) Keeping tempo', self.perks['Running']['Keeping tempo'] * 0.03 if self.settings['Running stacks'] else 0)
+        self.update_effect(active_effects['%_critical_hit_chance'], '(Magic Perk) True sight', self.perks['Magic']['True sight'] * 0.01)
+        self.update_effect(active_effects['%_critical_hit_damage'], '(Base Effect) Base', 0.5)
+        self.update_effect(active_effects['%_critical_hit_damage'], '(Gardening Perk) Thorny weapons', self.perks['Gardening']['Thorny weapons'] * 0.05)
+        self.update_effect(active_effects['%_critical_hit_damage'], '(Range Perk) Amplified precision', self.perks['Range']['Amplified precision'] * 0.08)
+        self.update_effect(active_effects['%_damage_against_bosses'], '(Melee Perk) Strength of the Ancients', self.perks['Melee']['Strength of the Ancients'] * 0.05)
+        self.update_effect(active_effects['%_damage_against_bosses'], '(Fishing Perk) Power of Omega-3!', self.perks['Fishing']['Power of Omega-3!'] * 0.03 if self.settings['Ate fish-derived food'] else 0)
+        self.update_effect(active_effects['+_thorns_damage'], '(Gardening Perk) Thorny skin', self.perks['Gardening']['Thorny skin'] * 10)
 
         if self.items['Weapon'].damage_type=='Range':
-            character_attributes['%_physical_range_damage'] += self.skill_levels['Range']/200
-            if self.settings['Range stacks']:           character_attributes['%_physical_range_damage'] += self.perks['Range']['Keeping momentum'] * 2 * 0.02
-            if self.settings['Standing still']:         character_attributes['%_physical_range_damage'] += self.perks['Range']['Focused accuracy'] * 0.05
-            character_attributes['%_range_attack_speed'] += self.perks['Range']['Rapid shots'] * 0.02
-            character_attributes['%_range_attack_speed'] += self.perks['Summoning']['Power in numbers'] * 0.02
-            character_attributes['+_fishing'] += self.skill_levels['Fishing']
+            self.update_effect(active_effects['%_physical_range_damage'], '(Range Skill) Skill level bonus', self.skill_levels['Range']/200)
+            self.update_effect(active_effects['%_physical_range_damage'], '(Range Perk) Keeping momentum', self.perks['Range']['Keeping momentum'] * 2 * 0.02 if self.settings['Range stacks'] else 0)
+            self.update_effect(active_effects['%_physical_range_damage'], '(Range Perk) Focused accuracy', self.perks['Range']['Focused accuracy'] * 0.05 if self.settings['Standing still'] else 0)
+            self.update_effect(active_effects['%_range_attack_speed'], '(Range Perk) Rapid shots', self.perks['Range']['Rapid shots'] * 0.02)
+            self.update_effect(active_effects['%_range_attack_speed'], '(Summoning Perk) Power in numbers', self.perks['Summoning']['Power in numbers'] * 0.02 if self.settings['Summon active'] else 0)
+            self.update_effect(active_effects['+_fishing'], '(Fishing Skill) Skill level bonus', self.skill_levels['Fishing'])
         if self.items['Weapon'].damage_type=='Melee':
-            character_attributes['%_physical_melee_damage'] += self.skill_levels['Melee']/200
-            if self.settings['Melee stacks']:           character_attributes['%_physical_melee_damage'] += self.perks['Melee']['Building anger'] * 2 * 0.02
-            if self.settings['Melee stacks']:           character_attributes['%_physical_melee_damage'] += self.perks['Melee']['Stubborn fighter'] * 0.03
-            character_attributes['%_melee_attack_speed'] += self.perks['Melee']['Quick strikes'] * 0.02
-            character_attributes['+_mining_damage'] += self.skill_levels['Mining']
+            self.update_effect(active_effects['%_physical_melee_damage'], '(Melee Skill) Skill level bonus', self.skill_levels['Melee']/200)
+            self.update_effect(active_effects['%_physical_melee_damage'], '(Melee Perk) Building anger', self.perks['Melee']['Building anger'] * 2 * 0.02 if self.settings['Melee stacks'] else 0)
+            self.update_effect(active_effects['%_physical_melee_damage'], '(Melee Perk) Stubborn fighter', self.perks['Melee']['Stubborn fighter'] * 0.03 if self.settings['Melee stacks'] else 0)
+            self.update_effect(active_effects['%_melee_attack_speed'], '(Melee Perk) Quick strikes', self.perks['Melee']['Quick strikes'] * 0.02)
+            self.update_effect(active_effects['+_mining_damage'], '(Mining Skill) Skill level bonus', self.skill_levels['Mining'])
+            self.update_effect(active_effects['+_mining_damage'], '(Base Effect) Base', 20)
+            self.update_effect(active_effects['%_mining_damage'], '(Mining Perk) Efficient excavation', self.perks['Mining']['Efficient excavation'] * 0.02)
+
+        return active_effects
+    
+
+    def update_effect(self, effect: dict, key: str, value): 
+        if value != 0: effect.update({key: value})
 
 
-        return character_attributes
+    def get_active_effects(self):
+        active_effects = ACTIVE_EFFECTS_DICT.copy()
 
-    def get_attributes(self):
-        item_attributes = self.get_item_stats()['attributes']
-        character_attributes = self.get_character_attributes()
-        food_attributes = self.food_attributes if self.food_attributes is not None and self.settings['Consumables active'] else {k: 0. for k in character_attributes.keys()}
+        item_effects, set_keywords = self.get_item_active_effects()
+        character_effects = self.get_character_active_effects()
+        consumables_effects = self.get_consumables_active_effects()
 
-        attributes = {attribute_name: item_attributes[attribute_name] + character_attributes[attribute_name] + food_attributes[attribute_name] for attribute_name in character_attributes.keys()}
+        [[self.update_effect(active_effects[k], *item) for k in effects.keys() for item in effects[k].items()] for effects in [item_effects, character_effects, consumables_effects]]
 
-        return attributes
+        return active_effects, set_keywords
