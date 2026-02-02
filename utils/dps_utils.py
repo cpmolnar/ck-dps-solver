@@ -45,9 +45,8 @@ def calculate_fast_and_furious_attack_speed(character: Character, attributes):
     expected_rolls_per_outcome = 1 / (character.perks['Melee']['Fast and furious'] * 0.02)
     expected_seconds_until_outcome = expected_rolls_per_outcome / attacks_per_second
     active_likelihood = 2 / (2 + expected_seconds_until_outcome)
-    adjusted_melee_attack_speed = (attacks_per_second * 1.5 * active_likelihood) + (attacks_per_second * (1 - active_likelihood))
+    adjusted_melee_attack_speed = (attributes['%_melee_attack_speed'] * 1.5 * active_likelihood) + (attributes['%_melee_attack_speed'] * (1 - active_likelihood))
     return adjusted_melee_attack_speed
-
 
 def calculate_dps(character: Character):
     damage_type = character.items['Weapon'].damage_type
@@ -57,16 +56,14 @@ def calculate_dps(character: Character):
 
     average_damage = (min_damage + max_damage) / 2
     critical_hit_chance = calculate_weakness_detection_crit(character, active_effects) if damage_type=='Range' else active_effects['%_critical_hit_chance']
+    damage_type_attack_speed = active_effects['%_range_attack_speed'] if damage_type=='Range' else calculate_fast_and_furious_attack_speed(character, active_effects)
 
     crit_adjusted_damage =  average_damage * (critical_hit_chance * (1 + active_effects['%_critical_hit_damage'])) 
     crit_adjusted_damage += average_damage * (1 - critical_hit_chance)
     triple_adjusted_damage = crit_adjusted_damage * active_effects['%_triple_hit_chance'] * 3
     triple_adjusted_damage += crit_adjusted_damage * (1 - active_effects['%_triple_hit_chance'])
 
-    if damage_type=='Melee':
-        attacks_per_second = calculate_fast_and_furious_attack_speed(character, active_effects)
-    elif damage_type=='Range':
-        attacks_per_second = character.items['Weapon'].attacks_per_second * (1 + active_effects['%_range_attack_speed'] + active_effects['%_melee_and_range_attack_speed'])
+    attacks_per_second = character.items['Weapon'].attacks_per_second * (1 + damage_type_attack_speed + active_effects['%_melee_and_range_attack_speed'])
     final_dps = triple_adjusted_damage * attacks_per_second
 
     return math.floor(final_dps)
