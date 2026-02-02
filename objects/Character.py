@@ -78,7 +78,7 @@ class Character():
     def printable_loadout(self): return ', '.join([item_name for item_name in self.items.keys() if item_name is not None])
 
     def get_consumables_active_effects(self):
-        active_effects = ACTIVE_EFFECTS_DICT.copy()
+        active_effects = {k: {} for k in ACTIVE_EFFECTS_DICT.keys()}
         if self.settings['Consumables active']:
             if self.food_effects is not None:
                 [self.update_effect(active_effects[k], *item) for k in self.food_effects.keys() for item in self.food_effects[k].items()]
@@ -88,7 +88,7 @@ class Character():
         return active_effects
 
     def get_item_active_effects(self, return_set=True):
-        active_effects = ACTIVE_EFFECTS_DICT.copy()
+        active_effects = {k: {} for k in ACTIVE_EFFECTS_DICT.keys()}
         set_keywords = {}
         for item in self.items.values():
             if item is not None:
@@ -103,7 +103,7 @@ class Character():
         return active_effects
     
     def get_character_active_effects(self):
-        active_effects = ACTIVE_EFFECTS_DICT.copy()
+        active_effects = {k: {} for k in ACTIVE_EFFECTS_DICT.keys()}
 
         self.update_effect(active_effects['%_damage'], '(Cooking Perk) The smell of food', self.perks['Cooking']['The smell of food'] * 0.04)
         self.update_effect(active_effects['%_damage'], '(Setting) Pyrdra soul', self.settings['Pyrdra soul'] * 0.1)
@@ -143,7 +143,7 @@ class Character():
 
 
     def get_active_effects(self):
-        active_effects = ACTIVE_EFFECTS_DICT.copy()
+        active_effects = {k: {} for k in ACTIVE_EFFECTS_DICT.keys()}
 
         item_effects, set_keywords = self.get_item_active_effects()
         character_effects = self.get_character_active_effects()

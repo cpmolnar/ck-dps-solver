@@ -70,14 +70,7 @@ potion_effects = {
 # }
 
 if __name__=='__main__':
-    character = Character(skill_levels, perk_trees, food_effects=food_effects, potion_effects=potion_effects, settings=None)
     damage_type = 'Melee'
-
-    character.equip(WEAPONS['Galaxite Chakram' if damage_type=='Range' else 'Stormbringer'])
-    character.equip(PETS['Pheromoth' if damage_type=='Range' else 'Owlux'])
-    if damage_type=='Melee':
-        character.equip(LANTERNS['None' if damage_type=='Range' else 'Orb Lantern'])
-        character.equip(BAGS['None' if damage_type=='Range' else 'Morpha\'s Bubble Bag'])
 
     # results = pd.read_csv('outputs/melee_dps.csv')
     keys_list = get_keys_for_damage_type([HELMS, BREAST_ARMORS, PANTS_ARMORS, NECKLACES, RINGS, RINGS, OFFHANDS], damage_type)
@@ -108,6 +101,12 @@ if __name__=='__main__':
     results = results.drop_duplicates(subset=['Helm', 'Breast armor', 'Pants armor', 'Necklace', 'Ring1', 'Ring2', 'Offhand', 'Pet'])
 
     def calculate(row):
+        character = Character(skill_levels, perk_trees, food_effects=food_effects, potion_effects=potion_effects, settings=None)
+        character.equip(WEAPONS['Galaxite Chakram' if damage_type=='Range' else 'Stormbringer'])
+        character.equip(PETS['Pheromoth' if damage_type=='Range' else 'Owlux'])
+        if damage_type=='Melee':
+            character.equip(LANTERNS['None' if damage_type=='Range' else 'Orb Lantern'])
+            character.equip(BAGS['None' if damage_type=='Range' else 'Morpha\'s Bubble Bag'])
         character.unequip_items(except_categories=['Weapon', 'Pet', 'Lantern', 'Bag'])
         character.equip(HELMS[row['Helm']])
         character.equip(BREAST_ARMORS[row['Breast armor']])
