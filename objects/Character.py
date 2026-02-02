@@ -53,7 +53,8 @@ class Character():
             'Melee stacks': True,
             'Consumables active': True,
             'Ate fish-derived food': True,
-            'Pyrdra soul': True
+            'Pyrdra soul': True,
+            'Summon active': True,
         }
 
         if items is not None:
