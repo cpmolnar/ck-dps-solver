@@ -91,11 +91,11 @@ class Character():
     def get_item_active_effects(self, return_set=True):
         active_effects = {k: {} for k in ACTIVE_EFFECTS_DICT.keys()}
         set_keywords = {}
-        for item in self.items.values():
+        for item_category, item in self.items.items():
             if item is not None:
                 set_keywords.update({item.name: item.set})
                 for attribute_name, value in item.attributes.items():
-                    self.update_effect(active_effects[attribute_name], f'(Item Effect) {item.name}', value)
+                    self.update_effect(active_effects[attribute_name], f'(Item Effect: {item_category}) {item.name}', value)
         self.update_effect(active_effects['%_damage'], '(Item Effect) Druidra\'s Ring', self.perks['Gardening']['Potent poison'] * 0.05 if sum([item_set=='druidra\'s_ring' for item_set in set_keywords.values()])>=1 else 0)
         self.update_effect(active_effects['%_damage'], '(Set Effect) Core Commander Set', 0.25 if sum([item_set=='core_commander_set' for item_set in set_keywords.values()])>=2 else 0)
         self.update_effect(active_effects['%_critical_hit_chance'], '(Set Effect) Ivy\'s Set', 0.25 if (sum([item_set=='ivy\'s_set' for item_set in set_keywords.values()])>=2) & (sum([item_set=='druidra\'s_ring' for item_set in set_keywords.values()])>=1) else 0)
