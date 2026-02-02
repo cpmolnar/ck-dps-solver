@@ -30,6 +30,8 @@ def calculate_adjusted_weapon_damage(character: Character, active_effects, set_k
 
 def calculate_weakness_detection_crit(character: Character, attributes):
     attacks_per_second = character.items['Weapon'].attacks_per_second * (1 + attributes['%_range_attack_speed'] + attributes['%_melee_and_range_attack_speed'])
+    if character.perks['Range']['Weakness detection']==0:
+        return attributes['%_critical_hit_chance']
     expected_rolls_per_outcome = 1 / (character.perks['Range']['Weakness detection'] * 0.02)
     expected_seconds_until_outcome = expected_rolls_per_outcome / attacks_per_second
     active_likelihood = 3 / (3 + expected_seconds_until_outcome) # This is activation length / the expected length of the block of time in and out of activation
@@ -38,10 +40,12 @@ def calculate_weakness_detection_crit(character: Character, attributes):
 
 def calculate_fast_and_furious_attack_speed(character: Character, attributes):
     attacks_per_second = character.items['Weapon'].attacks_per_second * (1 + attributes['%_melee_attack_speed'] + attributes['%_melee_and_range_attack_speed'])
+    if character.perks['Melee']['Fast and furious']==0:
+        return attacks_per_second
     expected_rolls_per_outcome = 1 / (character.perks['Melee']['Fast and furious'] * 0.02)
     expected_seconds_until_outcome = expected_rolls_per_outcome / attacks_per_second
     active_likelihood = 2 / (2 + expected_seconds_until_outcome)
-    adjusted_melee_attack_speed = (1.5 * active_likelihood) + (1 - active_likelihood)
+    adjusted_melee_attack_speed = (attacks_per_second * 1.5 * active_likelihood) + (attacks_per_second * (1 - active_likelihood))
     return adjusted_melee_attack_speed
 
 
@@ -53,14 +57,16 @@ def calculate_dps(character: Character):
 
     average_damage = (min_damage + max_damage) / 2
     critical_hit_chance = calculate_weakness_detection_crit(character, active_effects) if damage_type=='Range' else active_effects['%_critical_hit_chance']
-    damage_type_attack_speed = (active_effects['%_range_attack_speed'] if damage_type=='Range' else active_effects['%_melee_attack_speed'])
 
     crit_adjusted_damage =  average_damage * (critical_hit_chance * (1 + active_effects['%_critical_hit_damage'])) 
     crit_adjusted_damage += average_damage * (1 - critical_hit_chance)
     triple_adjusted_damage = crit_adjusted_damage * active_effects['%_triple_hit_chance'] * 3
     triple_adjusted_damage += crit_adjusted_damage * (1 - active_effects['%_triple_hit_chance'])
 
-    attacks_per_second = character.items['Weapon'].attacks_per_second * (1 + damage_type_attack_speed + active_effects['%_melee_and_range_attack_speed']) * calculate_fast_and_furious_attack_speed(character, active_effects)
+    if damage_type=='Melee':
+        attacks_per_second = calculate_fast_and_furious_attack_speed(character, active_effects)
+    elif damage_type=='Range':
+        attacks_per_second = character.items['Weapon'].attacks_per_second * (1 + active_effects['%_range_attack_speed'] + active_effects['%_melee_and_range_attack_speed'])
     final_dps = triple_adjusted_damage * attacks_per_second
 
     return math.floor(final_dps)

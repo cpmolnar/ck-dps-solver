@@ -80,7 +80,7 @@ if __name__=='__main__':
                 'Ring1': [], 'Ring2': [], 'Offhand': [], 'Lantern': [], 'Bag': [], 'Pet': [], 'DPS': []
     }
 
-    for loadout in tqdm(loadouts, desc='Composing loadouts...'):
+    for loadout in tqdm(loadouts, desc='Composing loadouts...', leave=False):
         helm, breast_armor, pants_armor, necklace, ring1, ring2, offhand = loadout
         [
             results[item_category].append(item_name) for item_category, item_name in \
