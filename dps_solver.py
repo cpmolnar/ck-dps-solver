@@ -7,7 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 
 skill_levels = {
-    'Mining':       95,
+    'Mining':       100,
     'Running':      100,
     'Melee':        100,
     'Vitality':     100,
